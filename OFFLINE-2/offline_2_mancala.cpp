@@ -120,7 +120,7 @@ public:
     }
 
     /// part of heuristic.................
-    int boardSituation(int weight1, int weight2)
+    int boardSituation(int weight1, int weight2,int htype)
     {
         int StoneOnEnemyBins = 0, StoneOnMybins = 0;
         int suitableBin=0;
@@ -136,8 +136,14 @@ public:
             if(7-i==y)
                 suitableBin++;
         }
-
-        return weight1 * (ownStorage - enemyStorage) + weight2 * (StoneOnMybins - StoneOnEnemyBins)+suitableBin;
+        if(htype==1)
+            return weight1 * (ownStorage - enemyStorage);
+        else if(htype==2)
+            return weight1 * (ownStorage - enemyStorage) + weight2 * (StoneOnMybins - StoneOnEnemyBins);
+        else if(htype==5)
+            return weight1 * (ownStorage - enemyStorage) + weight2 * (StoneOnMybins - StoneOnEnemyBins)+suitableBin;
+        else
+            return weight1 * (ownStorage - enemyStorage) + weight2 * (StoneOnMybins - StoneOnEnemyBins);
     }
 
     void printboard()
@@ -278,7 +284,7 @@ class Move_and_heuristic
         cout << endl;
     }
 
-    void calculateHeuristic(Board *newBoard, bool myTurn, int captured)
+    void calculateHeuristic(Board *newBoard, bool myTurn, int captured,int htype)
     {
         int heuristic;
         int p;
@@ -290,7 +296,14 @@ class Move_and_heuristic
 
         if (newBoard == NULL)
             cout << 1 << endl;
-        heuristic = newBoard->boardSituation(storageSituationWeight, binSituationWeight) + p * extraMoveWeight*newBoard->getExtraMoveCount() + p * captured * capturedWeight;
+        if(htype==1 || htype==2)
+            heuristic = newBoard->boardSituation(storageSituationWeight, binSituationWeight,htype);
+        else if(htype==3)
+            heuristic = newBoard->boardSituation(storageSituationWeight, binSituationWeight,htype) + p * extraMoveWeight*newBoard->getExtraMoveCount();
+        else if(htype==4 | htype==5)
+            heuristic = newBoard->boardSituation(storageSituationWeight, binSituationWeight,htype) + p * extraMoveWeight*newBoard->getExtraMoveCount() + p * captured * capturedWeight;
+
+
 
         newBoard->setHeuristic(heuristic);
 
@@ -306,7 +319,7 @@ public:
         this->capturedWeight = capturedWeight;
     }
 
-    vector<Board *> *calculation(Board *currBoard, bool myTurn, bool needHeuristic)
+    vector<Board *> *calculation(Board *currBoard, bool myTurn, bool needHeuristic,int htype)
     {
 
         vector<Board *> *nextBoards = new vector<Board *>();
@@ -409,7 +422,7 @@ public:
 
             newBoard->setMovePlace(i);
             if (needHeuristic)
-                calculateHeuristic(newBoard, myTurn,captured);
+                calculateHeuristic(newBoard, myTurn,captured,htype);
 
             nextBoards->push_back(newBoard);
         }
@@ -423,16 +436,16 @@ class Adversial_search
     int recentMove; /// stores recently which bin is played by AI...........
     Move_and_heuristic *move;
 
-    int selectBestMove(Board *currBoard, int depth, int alpha, int beta, bool ifMax, bool parentSame)
+    int selectBestMove(Board *currBoard, int depth, int alpha, int beta, bool ifMax, bool parentSame,int htype)
     {
         if(currBoard->ifEmptySide(ifMax))
         {
-            return currBoard->boardSituation(2,1);
+            return currBoard->boardSituation(2,1,htype);
 
         }
         if (depth == 1)
         {
-            vector<Board *> *nextBoards = move->calculation(currBoard, ifMax, true);
+            vector<Board *> *nextBoards = move->calculation(currBoard, ifMax, true,htype);
 
             int u;
             if (ifMax)
@@ -453,7 +466,7 @@ class Adversial_search
         }
         else
         {
-            vector<Board *> *nextBoards = move->calculation(currBoard, ifMax, false); /// find the children, but don't calculate their heuristic
+            vector<Board *> *nextBoards = move->calculation(currBoard, ifMax, false,htype); /// find the children, but don't calculate their heuristic
 
             if (ifMax) /// current node is max
             {
@@ -468,7 +481,7 @@ class Adversial_search
                     else
                         nextMax = !ifMax;
 
-                    int r = selectBestMove(it, depth - 1, alpha, beta, nextMax, samechild);
+                    int r = selectBestMove(it, depth - 1, alpha, beta, nextMax, samechild,htype);
                     alpha = max(alpha, r);
                     u = max(u, r);
                     if (!parentSame && alpha >= beta) /// if prev node is also max, then we can't prune.........
@@ -489,7 +502,7 @@ class Adversial_search
                         nextMax = ifMax;
                     else
                         nextMax = !ifMax;
-                    int r = selectBestMove(it, depth - 1, alpha, beta, nextMax, samechild);
+                    int r = selectBestMove(it, depth - 1, alpha, beta, nextMax, samechild,htype);
                     beta = min(beta, r);
                     u = min(u, r);
                     if (!parentSame && alpha >= beta)
@@ -508,9 +521,9 @@ public:
         recentMove = -1;
         move = new Move_and_heuristic(2, 1, 4, 3);
     }
-    int returnMove(Board *currBoard, int depth)
+    int returnMove(Board *currBoard, int depth,int htype)
     {
-        vector<Board *> *nextBoards = move->calculation(currBoard, true, false); /// find the children, but don't calculate their heuristic
+        vector<Board *> *nextBoards = move->calculation(currBoard, true, false,htype); /// find the children, but don't calculate their heuristic
 
         int u = -1000000000;
         int ans;
@@ -525,7 +538,7 @@ public:
             else
                 nextMax = false;
 
-            int r = selectBestMove(it, depth, -1000000000, 1000000000, nextMax, samechild);
+            int r = selectBestMove(it, depth, -1000000000, 1000000000, nextMax, samechild,htype);
             if (r > u)
             {
                 u = r;
@@ -562,7 +575,7 @@ public:
         this->depth = depth;
     }
 
-    void play_game(Board *cur_board, int player)
+    void play_game(Board *cur_board, int player,int htype)
     {
         if(cur_board->result())
             return;
@@ -656,11 +669,11 @@ public:
             delete cur_board;
             if (extraMove)
             {
-                play_game(newBoard, 1);
+                play_game(newBoard, 1,htype);
             }
             else
             {
-                play_game(newBoard, 2);
+                play_game(newBoard, 2,htype);
             }
         }
 
@@ -672,7 +685,7 @@ public:
             cout << "AI IS PLAYING............." << endl;
 
             cur_board = search->rotateBoard(cur_board);
-            int o = search->returnMove(cur_board, depth);
+            int o = search->returnMove(cur_board, depth,htype);
 
             int captured = 0;
             bool extraMove = false;
@@ -747,16 +760,16 @@ public:
             newBoard = search->rotateBoard(newBoard);
             if (extraMove)
             {
-                play_game(newBoard, 2);
+                play_game(newBoard, 2,htype);
             }
             else
             {
-                play_game(newBoard, 1);
+                play_game(newBoard, 1,htype);
             }
         }
     }
 
-    void AI_vs_AI(Board *cur_board, int player,int depth1,int depth2)
+    void AI_vs_AI(Board *cur_board, int player,int depth1,int depth2,int htype1,int htype2)
     {
         if(cur_board->AI_vs_AI_result())
             return;
@@ -768,7 +781,7 @@ public:
             cout << "AI-1 IS PLAYING............." << endl;
 
 
-            int o = search->returnMove(cur_board, depth1);
+            int o = search->returnMove(cur_board, depth1,htype1);
 
             int captured = 0;
             bool extraMove = false;
@@ -843,11 +856,11 @@ public:
 
             if (extraMove)
             {
-                AI_vs_AI(newBoard, 1,depth1,depth2);
+                AI_vs_AI(newBoard, 1,depth1,depth2,htype1,htype2);
             }
             else
             {
-                AI_vs_AI(newBoard, 2,depth1,depth2);
+                AI_vs_AI(newBoard, 2,depth1,depth2,htype1,htype2);
             }
         }
 
@@ -859,7 +872,7 @@ public:
             cout << "AI-2 IS PLAYING............." << endl;
 
             cur_board = search->rotateBoard(cur_board);
-            int o = search->returnMove(cur_board, depth2);
+            int o = search->returnMove(cur_board, depth2,htype2);
 
             int captured = 0;
             bool extraMove = false;
@@ -934,11 +947,11 @@ public:
             newBoard = search->rotateBoard(newBoard);
             if (extraMove)
             {
-                AI_vs_AI(newBoard, 2,depth1,depth2);
+                AI_vs_AI(newBoard, 2,depth1,depth2,htype1,htype2);
             }
             else
             {
-                AI_vs_AI(newBoard, 1,depth1,depth2);
+                AI_vs_AI(newBoard, 1,depth1,depth2,htype1,htype2);
             }
         }
 
@@ -959,6 +972,6 @@ int main()
     // startingBoard->printboard();
     Adversial_search *search = new Adversial_search();
     Game_simulator *simulator = new Game_simulator(search, 6);
-    simulator->play_game(startingBoard, 1);
-    //simulator->AI_vs_AI(startingBoard,2,11,12);
+    //simulator->play_game(startingBoard, 1);
+    simulator->AI_vs_AI(startingBoard,1,5,5,4,5);
 }
