@@ -45,6 +45,22 @@ ll randomInRange(ll l, ll r) /// l inclusive, but r is exclusive
     return randomValue;
 }
 
+ll randomlyChooseZeroAndOne()
+{
+    // Seed the random number generator
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    // Create a Bernoulli distribution with probability p
+    double p = 0.5; // Probability of success (1)
+    std::bernoulli_distribution dis(p);
+
+    // Generate random choices between 0 and 1
+    int randomChoice = dis(gen);
+
+    return randomChoice;
+}
+
 // partition Management for next steps************************************************
 void resetPartition()
 {
@@ -314,11 +330,37 @@ void greedy_partition_simulation()
     cout << endl;
 }
 
+//random partition**************************************************************************************
+
+void createRandomPartition()
+{
+    for(int i=1;i<=nodes;i++)
+        nodePartitionTrack[i]=randomlyChooseZeroAndOne()+1;
+}
+void random_partition_simulation()
+{
+    cout << "*RANDOM PARTITION IS DONE FOR THIS ITERATION*************************************" << endl;
+
+    resetPartition();
+    createRandomPartition();
+    ll cur = calculateRecentPartition();
+    if (cur > bestAns)
+    {
+        savePartition();
+        bestAns = cur;
+    }
+    cout << "max cut: " << cur << endl;
+
+    cout << endl;
+}
+
 void greedyStage()
 {
     int ran=randomInRange(0,10);
-    if(ran<=8)
+    if(ran<=5)
         semi_greedy_partition_simulation();
+    else if(ran<=8)
+        random_partition_simulation();
     else 
         greedy_partition_simulation();
 }
