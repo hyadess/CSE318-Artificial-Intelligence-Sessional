@@ -1,0 +1,3 @@
+site for test case-->
+
+https://medium.com/toshiba-sbm/benchmarking-the-max-cut-problem-on-the-simulated-bifurcation-machine-e26e1127c0b0

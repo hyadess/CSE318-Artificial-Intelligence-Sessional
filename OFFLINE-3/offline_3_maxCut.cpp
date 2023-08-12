@@ -2,7 +2,8 @@
 using namespace std;
 #define ll long long
 #define NO_OF_NODES 5000
-#define ITERATION_COUNT 100
+#define ITERATION_COUNT 200
+
 struct Edge
 {
     ll startNode;
@@ -11,23 +12,91 @@ struct Edge
 };
 
 int nodePartitionTrack[NO_OF_NODES]; // 0 if not partitioned, 1 if partition 1, 2 if partition 2.......
+int bestNodePartition[NO_OF_NODES];
+ll bestAns = -1e18;
 int nodes;
-
 vector<pair<ll, ll>> edges[NO_OF_NODES];
 
-void resetPartition()
+// random generations******************************************************************
+double randomAlphaGeneration()
 {
-    for(int i=0;i<=nodes;i++)
-    {
-        nodePartitionTrack[i]=true;
-    }
+    // Seed the random number generator
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    // Create a uniform distribution between 0 and 1
+    std::uniform_real_distribution<double> dis(0.0, 1.0);
+
+    // Generate a random double between 0 and 1
+    double randomValue = dis(gen);
+    return randomValue;
 }
 
 ll randomInRange(ll l, ll r) /// l inclusive, but r is exclusive
 {
-    return random() % (r - l + 1) + l;
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
+
+    // Create a uniform distribution for the specified range
+    std::uniform_int_distribution<ll> dis(l, r - 1);
+
+    // Generate a random integer within the specified range
+    ll randomValue = dis(gen);
+    return randomValue;
 }
 
+// partition Management for next steps************************************************
+void resetPartition()
+{
+    for (int i = 0; i <= nodes; i++)
+    {
+        nodePartitionTrack[i] = 0;
+    }
+}
+
+void savePartition()
+{
+    for (int i = 0; i <= nodes; i++)
+    {
+        bestNodePartition[i] = nodePartitionTrack[i];
+    }
+}
+
+ll calculateRecentPartition()
+{
+    ll ans = 0;
+    for (int i = 1; i <= nodes; i++)
+    {
+        if (nodePartitionTrack[i] == 1)
+        {
+            for (auto it : edges[i])
+            {
+                if (nodePartitionTrack[it.first] == 2)
+                    ans += it.second;
+            }
+        }
+    }
+    return ans;
+}
+
+ll calculateBestPartition()
+{
+    ll ans = 0;
+    for (int i = 1; i <= nodes; i++)
+    {
+        if (bestNodePartition[i] == 1)
+        {
+            for (auto it : edges[i])
+            {
+                if (bestNodePartition[it.first] == 2)
+                    ans += it.second;
+            }
+        }
+    }
+    return ans;
+}
+
+// semi greedy partition*********************************************************************
 ll sigmaFunction(int node, int partitionNo) // node is in partitionNo...
 {
     ll w = 0;
@@ -39,7 +108,7 @@ ll sigmaFunction(int node, int partitionNo) // node is in partitionNo...
     return w;
 }
 
-Edge *randomPartitionStart(double alpha) // returns the first edge selected for the partitions.......
+Edge *semiGreedyPartitionStart(double alpha) // returns the first edge selected for the partitions.......
 {
 
     vector<Edge *> SelectedEdge;
@@ -61,7 +130,7 @@ Edge *randomPartitionStart(double alpha) // returns the first edge selected for 
     {
         for (auto it : edges[i])
         {
-            if (it.second >= threshold)
+            if (it.second >= threshold && i < it.first)
             {
                 Edge *edge = new Edge;
                 edge->startNode = i;
@@ -71,23 +140,23 @@ Edge *randomPartitionStart(double alpha) // returns the first edge selected for 
             }
         }
     }
-
-    int ran = randomInRange(0, SelectedEdge.size());
-
+    // cout<<"done"<<endl;
+    ll ran = randomInRange(0, SelectedEdge.size());
+    // cout<<ran<<endl;
     return SelectedEdge[ran];
 }
 
-void createPartition(double alpha)
+void createSemiGreedyPartition(double alpha)
 {
     // entering the first pair of nodes.................
-    Edge *edge = randomPartitionStart(alpha);
+    Edge *edge = semiGreedyPartitionStart(alpha);
     nodePartitionTrack[edge->startNode] = 1;
     nodePartitionTrack[edge->endNode] = 2;
 
     // this loops will go on until all nodes are partitioned...............
     while (1)
     {
-        //finding all non partitioned nodes...................
+        // finding all non partitioned nodes...................
         vector<ll> nonCatagorizedNodes;
         for (ll i = 1; i <= nodes; i++)
         {
@@ -95,7 +164,7 @@ void createPartition(double alpha)
                 nonCatagorizedNodes.push_back(i);
         }
         // if no node is remaining non partitioned, break this loop
-        if(nonCatagorizedNodes.size()==0)
+        if (nonCatagorizedNodes.size() == 0)
             break;
 
         // find the value a node could gain if added to any of the two partitions............
@@ -124,127 +193,229 @@ void createPartition(double alpha)
         }
 
         /// selecting a node and adding it to the best suited partition...............
-        int selectedIndex=randomInRange(0,selectedNodes.size());
-        if(sigmaValuePair[selectedIndex].first>=sigmaValuePair[selectedIndex].second)
-            nodePartitionTrack[nonCatagorizedNodes[selectedIndex]]=1;
+        int selectedIndex = randomInRange(0, selectedNodes.size());
+        if (sigmaValuePair[selectedIndex].first >= sigmaValuePair[selectedIndex].second)
+            nodePartitionTrack[nonCatagorizedNodes[selectedIndex]] = 1;
         else
-            nodePartitionTrack[nonCatagorizedNodes[selectedIndex]]=2;
-
+            nodePartitionTrack[nonCatagorizedNodes[selectedIndex]] = 2;
     }
 }
 
-ll calculationAfterCreatingPartition()
+void semi_greedy_partition_simulation()
 {
-    ll ans=0;
-    for(int i=1;i<=nodes;i++)
-    {
-        if(nodePartitionTrack[i]==1)
-        {
-            for(auto it:edges[i])
-            {
-                if(nodePartitionTrack[it.first]==2)
-                    ans+=it.second;
-            }
-        }
-    }
-    return ans;
+    cout << "*SEMI GREEDY PARTITION IS DONE FOR THIS ITERATION*************************************" << endl;
 
+    double alpha = randomAlphaGeneration();
+
+    resetPartition();
+    createSemiGreedyPartition(alpha);
+
+    ll cur = calculateRecentPartition();
+    if (cur > bestAns)
+    {
+        savePartition();
+        bestAns = cur;
+    }
+
+    cout << "max cut: " << cur << "  alpha:  " << alpha << endl;
+
+    cout << endl;
 }
 
+// greedy partition**************************************************************************************
 
-pair<ll,ll> bestNodeToExchange() // return the best node to move and the gain from it.
+Edge *GreedyPartitionStart() // returns the first edge selected for the partitions.......
 {
-    ll  best=-1e18,node=-1;
-    for(int i=1;i<=nodes;i++)
+
+    ll maximumWeight = -1e18, startNode = -1, endNode = -1, weight = -1e18;
+
+    for (int i = 1; i <= nodes; i++)
     {
-        if(nodePartitionTrack[i]==1)
+        for (auto it : edges[i])
         {
-            ll partition1_value=sigmaFunction(i,1);
-            ll partition2_value=sigmaFunction(i,2);
-            if(partition2_value-partition1_value>best)
+            if (it.second > maximumWeight)
             {
-                best=partition2_value-partition1_value;
-                node=i;
-            }
-        }
-        if(nodePartitionTrack[i]==2)
-        {
-            ll partition1_value=sigmaFunction(i,1);
-            ll partition2_value=sigmaFunction(i,2);
-            if(partition1_value-partition2_value>best)
-            {
-                best=partition1_value-partition2_value;
-                node=i;
+                startNode = i;
+                endNode = it.first;
+                weight = it.second;
+                maximumWeight = it.second;
             }
         }
     }
 
-    return {node,best};
+    Edge *edge = new Edge;
+    edge->startNode = startNode;
+    edge->endNode = endNode;
+    edge->weight = weight;
 
+    return edge;
 }
 
-ll localSearchOnPartition(int maxTillNow) 
+void createGreedyPartition()
 {
-    bool better=true;
-    ll bestAnswer=maxTillNow;
-    while(better)
+    // entering the first pair of nodes.................
+    Edge *edge = GreedyPartitionStart();
+    nodePartitionTrack[edge->startNode] = 1;
+    nodePartitionTrack[edge->endNode] = 2;
+
+    // this loops will go on until all nodes are partitioned...............
+    while (1)
     {
-        better=false;
-        pair<ll,ll> p=bestNodeToExchange();
-        if(p.second>0) // a gain!!!
+        // finding all non partitioned nodes...................
+        vector<ll> nonCatagorizedNodes;
+        for (ll i = 1; i <= nodes; i++)
         {
-            bestAnswer+=p.second;
-            if(nodePartitionTrack[p.first]==1)
+            if (nodePartitionTrack[i] == 0)
+                nonCatagorizedNodes.push_back(i);
+        }
+        // if no node is remaining non partitioned, break this loop
+        if (nonCatagorizedNodes.size() == 0)
+            break;
+
+        // find the best value a node could gain if added to any of the two partitions............
+
+        ll maxSigmaValue = -1e18, nodeNo = -1, partitionNo = -1;
+        for (auto it : nonCatagorizedNodes)
+        {
+            ll w1 = sigmaFunction(it, 1);
+            ll w2 = sigmaFunction(it, 2);
+            if (w1 > maxSigmaValue)
             {
-                nodePartitionTrack[p.first]=2;
+                nodeNo = it;
+                partitionNo = 1;
+                maxSigmaValue = w1;
+            }
+            if (w2 > maxSigmaValue)
+            {
+                nodeNo = it;
+                partitionNo = 2;
+                maxSigmaValue = w2;
+            }
+        }
+
+        nodePartitionTrack[nodeNo] = partitionNo;
+    }
+}
+
+void greedy_partition_simulation()
+{
+    cout << "*GREEDY PARTITION IS DONE FOR THIS ITERATION*************************************" << endl;
+
+    resetPartition();
+    createGreedyPartition();
+    ll cur = calculateRecentPartition();
+    if (cur > bestAns)
+    {
+        savePartition();
+        bestAns = cur;
+    }
+    cout << "max cut: " << cur << endl;
+
+    cout << endl;
+}
+
+void greedyStage()
+{
+    int ran=randomInRange(0,10);
+    if(ran<=8)
+        semi_greedy_partition_simulation();
+    else 
+        greedy_partition_simulation();
+}
+
+pair<ll, ll> bestNodeToExchange() // return the best node to move and the gain from it.
+{
+    ll best = -1e18, node = -1;
+    for (int i = 1; i <= nodes; i++)
+    {
+        if (nodePartitionTrack[i] == 1)
+        {
+            ll partition1_value = sigmaFunction(i, 1);
+            ll partition2_value = sigmaFunction(i, 2);
+            if (partition2_value - partition1_value > best)
+            {
+                best = partition2_value - partition1_value;
+                node = i;
+            }
+        }
+        if (nodePartitionTrack[i] == 2)
+        {
+            ll partition1_value = sigmaFunction(i, 1);
+            ll partition2_value = sigmaFunction(i, 2);
+            if (partition1_value - partition2_value > best)
+            {
+                best = partition1_value - partition2_value;
+                node = i;
+            }
+        }
+    }
+
+    return {node, best};
+}
+
+void localSearchOnPartition()
+{
+    cout << "*LOCAL SEARCH IS STARTING**********************************" << endl;
+    bool better = true;
+    ll bestAnswer = bestAns;
+    while (better)
+    {
+        better = false;
+        pair<ll, ll> p = bestNodeToExchange();
+        if (p.second > 0) // a gain!!!
+        {
+            bestAnswer += p.second;
+            if (nodePartitionTrack[p.first] == 1)
+            {
+                nodePartitionTrack[p.first] = 2;
             }
             else
-                nodePartitionTrack[p.first]=1;
-            
-            better=true;
+                nodePartitionTrack[p.first] = 1;
+
+            better = true;
         }
     }
-    return bestAnswer;
-}
+    bestAns = bestAnswer;
 
+    cout << "max cut: " << bestAns << endl;
+}
 
 ll oneIteration()
 {
-    double alpha=0.8;
-    resetPartition();
-    createPartition(alpha);
-    ll maxTillNow=calculationAfterCreatingPartition();
-    ll bestAnswer=localSearchOnPartition(maxTillNow);
-    return bestAnswer;
-
+    greedyStage();
+    localSearchOnPartition();
+    return bestAns;
 }
-
-
-
 
 int main()
 {
     freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
     int m;
-    cin>>nodes>>m;
-    for(int i=0;i<m;i++)
+    cin >> nodes >> m;
+    for (int i = 0; i < m; i++)
     {
-        ll l,r,w;
-        cin>>l>>r>>w;
-        edges[l].push_back({r,w});
-        edges[r].push_back({l,w});
+        ll l, r, w;
+        cin >> l >> r >> w;
+        edges[l].push_back({r, w});
+        edges[r].push_back({l, w});
     }
-    ll ans=0;
-    for(int i=1;i<=ITERATION_COUNT;i++)
+    ll ans = -1e18;
+    for (int i = 1; i <= ITERATION_COUNT; i++)
     {
-
-        ll p=oneIteration();
-        if(p>ans)
+        cout << "****************************ITERATION " << i << "*********************************" << endl;
+        bestAns = -1e18;
+        ll p = oneIteration();
+        if (p > ans)
         {
-            ans=p;
-            cout<<"Iteration "<<i<<": "<<ans<<endl;
+            ans = p;
         }
-        
+        cout << endl
+             << endl
+             << endl
+             << endl
+             << endl;
     }
-    
+
+    cout << "BEST ANS AFTER ALL: " << ans << endl;
 }
