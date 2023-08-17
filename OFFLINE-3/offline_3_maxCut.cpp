@@ -2,7 +2,7 @@
 using namespace std;
 #define ll long long
 #define NO_OF_NODES 5000
-#define ITERATION_COUNT 200
+#define ITERATION_COUNT 500
 
 struct Edge
 {
@@ -11,11 +11,26 @@ struct Edge
     ll weight;
 };
 
+struct Result
+{
+    //<grasp iterationNo,max-cut result>
+    vector<pair<ll, ll>> randomizedPartitionResults;
+    //<grasp iterationNo,<alpha value,max-cut result>>
+    vector<pair<ll, pair<double, ll>>> semiGreedyPartitionResults;
+    /// greedy max-cut result
+    ll greedyPartitionResult;
+    // <local search type,<iterationCount,max-cut result>>
+    vector<pair<ll, pair<ll, ll>>> localSearchResults;
+};
+
 int nodePartitionTrack[NO_OF_NODES]; // 0 if not partitioned, 1 if partition 1, 2 if partition 2.......
 int bestNodePartition[NO_OF_NODES];
 ll bestAns = -1e18;
 int nodes;
 vector<pair<ll, ll>> edges[NO_OF_NODES];
+
+Result result;
+int currentIteration;
 
 // random generations******************************************************************
 double randomAlphaGeneration()
@@ -219,7 +234,7 @@ void createSemiGreedyPartition(double alpha)
 
 void semi_greedy_partition_simulation()
 {
-    cout << "*SEMI GREEDY PARTITION IS DONE FOR THIS ITERATION*************************************" << endl;
+    // cout << "*SEMI GREEDY PARTITION IS DONE FOR THIS ITERATION*************************************" << endl;
 
     double alpha = randomAlphaGeneration();
 
@@ -232,10 +247,11 @@ void semi_greedy_partition_simulation()
         savePartition();
         bestAns = cur;
     }
+    result.semiGreedyPartitionResults.push_back({currentIteration, {alpha, cur}});
 
-    cout << "max cut: " << cur << "  alpha:  " << alpha << endl;
+    // cout << "max cut: " << cur << "  alpha:  " << alpha << endl;
 
-    cout << endl;
+    // cout << endl;
 }
 
 // greedy partition**************************************************************************************
@@ -315,7 +331,7 @@ void createGreedyPartition()
 
 void greedy_partition_simulation()
 {
-    cout << "*GREEDY PARTITION IS DONE FOR THIS ITERATION*************************************" << endl;
+    // cout << "*GREEDY PARTITION IS DONE FOR THIS ITERATION*************************************" << endl;
 
     resetPartition();
     createGreedyPartition();
@@ -325,21 +341,22 @@ void greedy_partition_simulation()
         savePartition();
         bestAns = cur;
     }
-    cout << "max cut: " << cur << endl;
+    // cout << "max cut: " << cur << endl;
+    result.greedyPartitionResult = max(result.greedyPartitionResult, cur);
 
-    cout << endl;
+    // cout << endl;
 }
 
-//random partition**************************************************************************************
+// random partition**************************************************************************************
 
 void createRandomPartition()
 {
-    for(int i=1;i<=nodes;i++)
-        nodePartitionTrack[i]=randomlyChooseZeroAndOne()+1;
+    for (int i = 1; i <= nodes; i++)
+        nodePartitionTrack[i] = randomlyChooseZeroAndOne() + 1;
 }
 void random_partition_simulation()
 {
-    cout << "*RANDOM PARTITION IS DONE FOR THIS ITERATION*************************************" << endl;
+    // cout << "*RANDOM PARTITION IS DONE FOR THIS ITERATION*************************************" << endl;
 
     resetPartition();
     createRandomPartition();
@@ -349,22 +366,26 @@ void random_partition_simulation()
         savePartition();
         bestAns = cur;
     }
-    cout << "max cut: " << cur << endl;
+    // cout << "max cut: " << cur << endl;
+    result.randomizedPartitionResults.push_back({currentIteration, cur});
 
-    cout << endl;
+    // cout << endl;
 }
 
 void greedyStage()
 {
-    int ran=randomInRange(0,10);
-    if(ran<=5)
+    int ran = randomInRange(0, 10);
+    if (ran <= 5)
         semi_greedy_partition_simulation();
-    else if(ran<=8)
+    else if (ran <= 8)
         random_partition_simulation();
-    else 
+    else
         greedy_partition_simulation();
 }
 
+// ###################################LOCAL SEARCH STAGE#####################################################
+
+// way 1.......................................................
 pair<ll, ll> bestNodeToExchange() // return the best node to move and the gain from it.
 {
     ll best = -1e18, node = -1;
@@ -395,15 +416,58 @@ pair<ll, ll> bestNodeToExchange() // return the best node to move and the gain f
     return {node, best};
 }
 
+// way 2...............................................
+
+pair<ll, ll> firstNodeToExchange() // return the best node to move and the gain from it.
+{
+    ll best = -1e18, node = -1;
+    for (int i = 1; i <= nodes; i++)
+    {
+        if (nodePartitionTrack[i] == 1)
+        {
+            ll partition1_value = sigmaFunction(i, 1);
+            ll partition2_value = sigmaFunction(i, 2);
+            if (partition2_value - partition1_value > best)
+            {
+                best = partition2_value - partition1_value;
+                node = i;
+                break;
+            }
+        }
+        if (nodePartitionTrack[i] == 2)
+        {
+            ll partition1_value = sigmaFunction(i, 1);
+            ll partition2_value = sigmaFunction(i, 2);
+            if (partition1_value - partition2_value > best)
+            {
+                best = partition1_value - partition2_value;
+                node = i;
+                break;
+            }
+        }
+    }
+
+    return {node, best};
+}
+
 void localSearchOnPartition()
 {
-    cout << "*LOCAL SEARCH IS STARTING**********************************" << endl;
+    // cout << "*LOCAL SEARCH IS STARTING**********************************" << endl;
     bool better = true;
     ll bestAnswer = bestAns;
+    int total_iteration = 0;
+    int c = randomlyChooseZeroAndOne() + 1;
+
     while (better)
     {
         better = false;
-        pair<ll, ll> p = bestNodeToExchange();
+        total_iteration++;
+        pair<ll, ll> p;
+        if (c == 1)
+            p = bestNodeToExchange();
+        else
+            p = firstNodeToExchange();
+
         if (p.second > 0) // a gain!!!
         {
             bestAnswer += p.second;
@@ -418,8 +482,9 @@ void localSearchOnPartition()
         }
     }
     bestAns = bestAnswer;
+    result.localSearchResults.push_back({c, {total_iteration, bestAnswer}});
 
-    cout << "max cut: " << bestAns << endl;
+    // cout << "max cut: " << bestAns << endl;
 }
 
 ll oneIteration()
@@ -427,6 +492,48 @@ ll oneIteration()
     greedyStage();
     localSearchOnPartition();
     return bestAns;
+}
+
+void printResult()
+{
+    cout << "SEMI GREEDY PARTITION RESULTS------------------------------>"
+         << endl;
+    cout << setw(20) << left << "iteration no" << setw(20) << left << "alpha" << setw(20) << left << "max-cut" << endl;
+    for (int i = 0; i < result.semiGreedyPartitionResults.size(); i++)
+    {
+        cout << setw(20) << left << result.semiGreedyPartitionResults[i].first
+             << setw(20) << left << result.semiGreedyPartitionResults[i].second.first
+             << setw(20) << left << result.semiGreedyPartitionResults[i].second.second << endl;
+    }
+    cout << endl
+         << endl;
+
+    cout << "RANDOM PARTITION RESULTS------------------------------>"
+         << endl;
+    cout << setw(20) << left << "iteration no" << setw(20) << left << "max-cut" << endl;
+    for (int i = 0; i < result.randomizedPartitionResults.size(); i++)
+    {
+        cout << setw(20) << left << result.randomizedPartitionResults[i].first
+             << setw(20) << left << result.randomizedPartitionResults[i].second << endl;
+    }
+    cout << endl
+         << endl;
+
+    cout << "LOCAL SEARCH RESULTS------------------------------>"
+         << endl;
+    cout << setw(20) << left << "local search type" << setw(20) << left << "iteration count" << setw(20) << left << "max-cut" << endl;
+    int vp=0;
+    for (int i = 0; i < result.localSearchResults.size(); i++)
+    {
+        vp++;
+        cout << setw(20) << left << result.localSearchResults[i].first
+             << setw(20) << left << result.localSearchResults[i].second.first
+             << setw(20) << left << result.localSearchResults[i].second.second << endl;
+    }
+    cout << endl
+         << endl;
+
+
 }
 
 int main()
@@ -445,19 +552,20 @@ int main()
     ll ans = -1e18;
     for (int i = 1; i <= ITERATION_COUNT; i++)
     {
-        cout << "****************************ITERATION " << i << "*********************************" << endl;
+        currentIteration++;
+        // cout << "****************************ITERATION " << i << "*********************************" << endl;
         bestAns = -1e18;
         ll p = oneIteration();
         if (p > ans)
         {
             ans = p;
         }
-        cout << endl
-             << endl
-             << endl
-             << endl
-             << endl;
+        // cout << endl
+        //      << endl
+        //      << endl
+        //      << endl
+        //      << endl;
     }
-
+    printResult();
     cout << "BEST ANS AFTER ALL: " << ans << endl;
 }
