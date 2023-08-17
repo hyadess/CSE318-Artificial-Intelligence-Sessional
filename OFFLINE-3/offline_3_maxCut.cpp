@@ -2,7 +2,7 @@
 using namespace std;
 #define ll long long
 #define NO_OF_NODES 5000
-#define ITERATION_COUNT 500
+#define ITERATION_COUNT 3000
 
 struct Edge
 {
@@ -499,39 +499,83 @@ void printResult()
     cout << "SEMI GREEDY PARTITION RESULTS------------------------------>"
          << endl;
     cout << setw(20) << left << "iteration no" << setw(20) << left << "alpha" << setw(20) << left << "max-cut" << endl;
+
+    double averageAlpha=0;
+    double averageSemiGreedyMaxCut=0;
     for (int i = 0; i < result.semiGreedyPartitionResults.size(); i++)
     {
+        averageAlpha+=result.semiGreedyPartitionResults[i].second.first;
+        averageSemiGreedyMaxCut+=result.semiGreedyPartitionResults[i].second.second;
         cout << setw(20) << left << result.semiGreedyPartitionResults[i].first
              << setw(20) << left << result.semiGreedyPartitionResults[i].second.first
              << setw(20) << left << result.semiGreedyPartitionResults[i].second.second << endl;
     }
+    averageAlpha=1.0*averageAlpha/result.semiGreedyPartitionResults.size();
+    averageSemiGreedyMaxCut=1.0*averageSemiGreedyMaxCut/result.semiGreedyPartitionResults.size();
     cout << endl
          << endl;
 
     cout << "RANDOM PARTITION RESULTS------------------------------>"
          << endl;
     cout << setw(20) << left << "iteration no" << setw(20) << left << "max-cut" << endl;
+    double averageRandomMaxCut=0;
     for (int i = 0; i < result.randomizedPartitionResults.size(); i++)
     {
+        averageRandomMaxCut+=result.randomizedPartitionResults[i].second;
         cout << setw(20) << left << result.randomizedPartitionResults[i].first
              << setw(20) << left << result.randomizedPartitionResults[i].second << endl;
     }
+    averageRandomMaxCut=1.0*averageRandomMaxCut/result.randomizedPartitionResults.size();
     cout << endl
          << endl;
 
     cout << "LOCAL SEARCH RESULTS------------------------------>"
          << endl;
     cout << setw(20) << left << "local search type" << setw(20) << left << "iteration count" << setw(20) << left << "max-cut" << endl;
-    int vp=0;
+    int vp=0,firstType=0,secondType=0;
+    double averageFirstTypeItrCount=0,firstTypeMaxCut=0;
+    double averageSecondTypeItrCount=0,secondTypeMaxCut=0;
+
     for (int i = 0; i < result.localSearchResults.size(); i++)
     {
         vp++;
+        if(result.localSearchResults[i].first==1)
+        {
+            firstType++;
+            averageFirstTypeItrCount+=result.localSearchResults[i].second.first;
+            firstTypeMaxCut+=result.localSearchResults[i].second.second;
+
+        }
+        else
+        {
+            secondType++;
+            averageSecondTypeItrCount+=result.localSearchResults[i].second.first;
+            secondTypeMaxCut+=result.localSearchResults[i].second.second;
+        }
         cout << setw(20) << left << result.localSearchResults[i].first
              << setw(20) << left << result.localSearchResults[i].second.first
              << setw(20) << left << result.localSearchResults[i].second.second << endl;
     }
+    averageFirstTypeItrCount=1.0*averageFirstTypeItrCount/firstType;
+    firstTypeMaxCut=1.0*firstTypeMaxCut/firstType;
+
+    averageSecondTypeItrCount=1.0*averageSecondTypeItrCount/secondType;
+    secondTypeMaxCut=1.0*secondTypeMaxCut/secondType;
+
     cout << endl
          << endl;
+
+    cout<<"Average alpha for semi greedy: "<<averageAlpha<<endl;
+    cout<<"Average max cut for semi greedy: "<<averageSemiGreedyMaxCut<<endl;
+    cout<<endl;
+    cout<<"Average max cut  for random: "<<averageRandomMaxCut<<endl;
+    cout<<endl;
+    cout<<"Average iteration count for best chose local search: "<<averageFirstTypeItrCount<<endl;
+    cout<<"Average max cut for best chose local search: "<<firstTypeMaxCut<<endl;
+    cout<<endl;
+    cout<<"Average iteration count for first chose local search: "<<averageSecondTypeItrCount<<endl;
+    cout<<"Average max cut for first chose local search: "<<secondTypeMaxCut<<endl;
+
 
 
 }
