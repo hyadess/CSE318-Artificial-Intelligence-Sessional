@@ -2,7 +2,7 @@
 using namespace std;
 #define ll long long
 #define NO_OF_NODES 5000
-#define ITERATION_COUNT 3000
+#define ITERATION_COUNT 500
 
 struct Edge
 {
@@ -375,7 +375,7 @@ void random_partition_simulation()
 void greedyStage()
 {
     int ran = randomInRange(0, 10);
-    if (ran <= 5)
+    if (ran <= 6)
         semi_greedy_partition_simulation();
     else if (ran <= 8)
         random_partition_simulation();
@@ -565,25 +565,40 @@ void printResult()
     cout << endl
          << endl;
 
-    cout<<"Average alpha for semi greedy: "<<averageAlpha<<endl;
-    cout<<"Average max cut for semi greedy: "<<averageSemiGreedyMaxCut<<endl;
+    FILE* file=freopen("outputs/partitionOutput.csv", "a", stdout);
+    //cout<<"Average alpha for semi greedy: ";
+    cout<<averageAlpha<<",";
+    //cout<<"Average max cut for semi greedy: ";
+    cout<<averageSemiGreedyMaxCut<<","; 
+    //cout<<"Average max cut  for random: ";
+    cout<<averageRandomMaxCut<<",";
+    cout<<result.greedyPartitionResult;
     cout<<endl;
-    cout<<"Average max cut  for random: "<<averageRandomMaxCut<<endl;
-    cout<<endl;
-    cout<<"Average iteration count for best chose local search: "<<averageFirstTypeItrCount<<endl;
-    cout<<"Average max cut for best chose local search: "<<firstTypeMaxCut<<endl;
-    cout<<endl;
-    cout<<"Average iteration count for first chose local search: "<<averageSecondTypeItrCount<<endl;
-    cout<<"Average max cut for first chose local search: "<<secondTypeMaxCut<<endl;
+
+    fclose(file);
+
+    
+    file=freopen("outputs/remainingOutput.csv", "a", stdout);
 
 
+    //cout<<"Average iteration count for best chose local search: ";
+    cout<<averageFirstTypeItrCount<<",";
+    //cout<<"Average max cut for best chose local search: ";
+    cout<<firstTypeMaxCut<<",";
+    //cout<<"Average iteration count for first chose local search: ";
+    cout<<averageSecondTypeItrCount<<",";
+    //cout<<"Average max cut for first chose local search: ";
+    cout<<secondTypeMaxCut<<",";
+    cout<<bestAns;
+    cout<<endl;
 
+    fclose(file);
 }
 
-int main()
+int main(int argc,char* argv[])
 {
-    freopen("input.txt", "r", stdin);
-    freopen("output.txt", "w", stdout);
+    freopen(argv[1], "r", stdin);
+    
     int m;
     cin >> nodes >> m;
     for (int i = 0; i < m; i++)
@@ -610,6 +625,7 @@ int main()
         //      << endl
         //      << endl;
     }
+    bestAns=ans;
     printResult();
     cout << "BEST ANS AFTER ALL: " << ans << endl;
 }
