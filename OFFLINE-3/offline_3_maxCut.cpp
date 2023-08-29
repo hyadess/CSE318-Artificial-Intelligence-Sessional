@@ -432,7 +432,7 @@ pair<ll, ll> bestNodeToExchange() // return the best node to move and the gain f
 
 // way 2...............................................
 
-pair<ll, ll> firstNodeToExchange() // return the best node to move and the gain from it.
+pair<ll, ll> firstNodeToExchange() // return the first node to move and the gain from it.
 {
     ll best = -1e18, node = -1;
     for (int i = 1; i <= nodes; i++)
