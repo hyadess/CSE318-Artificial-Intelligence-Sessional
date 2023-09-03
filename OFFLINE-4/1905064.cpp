@@ -625,7 +625,7 @@ void testing(Node* root)
 
 
     }
-
+    freopen("eval.txt","a",stdout);
     cout<<1.0*right/testSet.size()<<endl;
 
 }
